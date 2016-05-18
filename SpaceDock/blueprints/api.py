@@ -620,7 +620,8 @@ def create_mod():
     test_game = Game.query.filter(Game.id == game).first()
     if not test_game:
         return { 'error': True, 'reason': 'Game does not exist.' }, 400
-    test_gameversion = GameVersion.query.filter(GameVersion.game_id == test_game.id).filter(GameVersion.friendly_version == game_version).first()
+    print(test_game)
+    test_gameversion = GameVersion.query.filter(GameVersion.game_id == test_game.id).first()
     if not test_gameversion:
         return { 'error': True, 'reason': 'Game version does not exist.' }, 400
     game_version_id = test_gameversion.id
@@ -716,7 +717,7 @@ def update_mod(mod_id):
     if not zipfile.is_zipfile(path):
         os.remove(path)
         return { 'error': True, 'reason': 'This is not a valid zip file.' }, 400
-    version = ModVersion(secure_filename(version), game_version_id, os.path.join(base_path, filename))
+    version = ModVersion(secure_filename(version), game_version_id, os.path.join(base_path, filename),False)
     version.changelog = changelog
     # Assign a sort index
     if len(mod.versions) == 0:
