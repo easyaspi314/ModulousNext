@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block styles %}
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='stylesheet.css') }}" />
+<style>
+  .bootstrap-demo{margin:30px;}
+</style>
+{% endblock %}
+{% block body %}
+<div class="container space-left-right" style="margin-top: 20px;">
+  <h1>Mod import</h1>
+  <p>Your mod <b>{{mod.name}}</b> is ready to be imported, you just need to follow a few extra steps</p>
+  <ul>
+      <li>Put the code provided below in your mod's description on Gamebanana, this is to prove you are the owner of the mod</li>
+  </ul>
+<b>Note: The image used as a cover in Modulous is going to be your Render, in case there's no render we will use your first screenshot, this import process can only be done once.</b>
+
+  <div class="bootstrap-demo">
+    <pre><p>{{mod.banana_verification}}</p></pre>
+    <a href="/verify_gb/{{mod.id}}"  id="submit" class="btn btn-success btn-lg btn-block" style="margin: 20px auto;">
+        <span class="progress-label">Verify import code</span>
+        <div class="progress" id="progress">
+            <div class="progress-bar-striped progress-bar active" style="width: 100%"></div>
+        </div>
+    </a>
+    {% if error %}
+    <div class="alert alert-danger" id="error-alert">
+        {{error}}
+    </div>
+    {% endif %}
+   </div>
+</div>
+{% endblock %}

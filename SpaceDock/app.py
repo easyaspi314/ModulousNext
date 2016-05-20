@@ -38,6 +38,7 @@ from SpaceDock.blueprints.admin import admin
 from SpaceDock.blueprints.mods import mods
 from SpaceDock.blueprints.lists import lists
 from SpaceDock.blueprints.api import api
+from SpaceDock.blueprints.import_gb import import_gb
 
 app = Flask(__name__)
 app.jinja_env.filters['firstparagraph'] = firstparagraph
@@ -65,6 +66,7 @@ app.register_blueprint(admin)
 app.register_blueprint(mods)
 app.register_blueprint(lists)
 app.register_blueprint(api)
+app.register_blueprint(import_gb)
 
 try:
     locale.setlocale(locale.LC_ALL, 'en_US')

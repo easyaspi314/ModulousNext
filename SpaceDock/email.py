@@ -22,6 +22,12 @@ def send_confirmation(user, followMod=None):
                     pystache.render(f.read(), { 'user': user, 'site-name': _cfg('site-name'), "domain": _cfg("domain"), 'confirmation': user.confirmation }))
     send_mail.delay(_cfg('support-mail'), [ user.email ], "Welcome to " + _cfg('site-name') + "!", message, important=True)
 
+def send_upload_confirmation(user, mod):
+    with open("emails/mod-import-confirm") as f:
+            message = html.parser.HTMLParser().unescape(\
+                    pystache.render(f.read(), {'mod': mod, 'user': user, 'site-name': _cfg('site-name'), "domain": _cfg("domain")}))
+    send_mail.delay(_cfg('support-mail'), [ user.email ], "Your mod has been uploaded to " + _cfg('site-name') + "!", message, important=True)
+
 def send_reset(user):
     with open("emails/password-reset") as f:
         message = html.parser.HTMLParser().unescape(\

@@ -2,17 +2,25 @@ from flask import Blueprint, render_template, request, g, Response, redirect, se
 from flask.ext.login import current_user
 from sqlalchemy import desc
 from SpaceDock.objects import User, Mod, ModVersion, DownloadEvent, FollowEvent, ReferralEvent, Featured, Media, GameVersion, Game
-from SpaceDock.email import send_update_notification, send_autoupdate_notification
+from SpaceDock.email import send_update_notification, send_autoupdate_notification, send_upload_confirmation
 from SpaceDock.database import db
 from SpaceDock.common import *
 from SpaceDock.config import _cfg
 from SpaceDock.blueprints.api import default_description
 from SpaceDock.ckan import send_to_ckan
+from SpaceDock.monkey import GbMod
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
+import time
 from shutil import rmtree, copyfile
 from urllib.parse import urlparse
-
+import sys
+import os
+import urllib.request
+import urllib
+import threading
+from queue import Queue
+import uuid
 import os
 import zipfile
 import urllib
@@ -541,6 +549,8 @@ def unfeature(mod_id):
 @loginrequired
 def publish(mod_id, mod_name):
     mod = Mod.query.filter(Mod.id == mod_id).first()
+    if mod.banana_verified ==  False:
+        abort(403)
     if not mod:
         abort(404)
     game = Game.query.filter(Game.id == mod.game_id).first()
@@ -763,3 +773,109 @@ def autoupdate(mod_id):
     default.gameversion_id = GameVersion.query.filter(GameVersion.game_id == mod.game_id).order_by(desc(GameVersion.id)).first().id
     send_autoupdate_notification(mod)
     return redirect(url_for("mods.mod", id=mod.id, mod_name=mod.name,ga=game))
+
+@mods.route('/gb_verification/<int:mod_id>', methods=['GET'])
+@with_session
+@loginrequired
+def gb_verification(mod_id):
+    mod = Mod.query.filter(Mod.id == mod_id).first()
+    error = request.args.get('error')
+    games = Game.query.filter(Game.active == True).order_by(desc(Game.id)).all()
+    if session.get('gameid'):
+        if session['gameid']:
+            ga = Game.query.filter(Game.id == session['gameid']).order_by(desc(Game.id)).first()
+        else:
+            ga = Game.query.filter(Game.short == 'melee').order_by(desc(Game.id)).first()
+    else:
+        ga = Game.query.filter(Game.short == 'melee').order_by(desc(Game.id)).first()
+    session['game'] = ga.id;
+    session['gamename'] = ga.name;
+    session['gameshort'] = ga.short;
+    session['gameid'] = ga.id;
+    if not mod or not ga:
+        abort(404)
+    if not mod.user == current_user and not current_user.admin:
+        abort(403)
+    return render_template("verify_import.html", mod=mod,ga=ga, error=error)
+
+@mods.route('/mod/import-success', methods=['GET'])
+@json_output
+def import_success():
+    return render_template("import-success.html")
+@mods.route('/verify_gb/<int:mod_id>', methods=['GET'])
+@json_output
+def verify_gb(mod_id):
+    mod = Mod.query.filter(Mod.id==mod_id).first()
+    if not mod:
+            abort(404)
+    print(mod.banana_url)
+    gb_mod = GbMod.load_from_url(mod.banana_url)
+    if not gb_mod:
+            return redirect('/gb_verification/' + mod.id + "?error=Mod does not exist in Gamebanana, did you delete it?")
+    if not mod.banana_verification in gb_mod.description:
+            return redirect('/gb_verification/' + mod.id + "?error=The mod does not have the verification check on Gamebanana")
+    mod.name = gb_mod.name
+    mod.short_description = gb_mod.description[:100]
+    mod.description = gb_mod.description
+    base_path = os.path.join(secure_filename(current_user.username) + '_' + str(current_user.id), secure_filename(mod.name))
+    full_path = os.path.join(_cfg('storage'), base_path)
+    type_thing = mod.banana_url.split('/')[-2]
+    filename = secure_filename(mod.name) + '-' + secure_filename(mod.versions[0].friendly_version) + '.zip'
+    download(["http://files.gamebanana.com/" + type_thing + "/" + gb_mod.file_path], full_path, filename, mod)
+
+    gb_filename = None
+    if not gb_mod.render:
+        gb_filename = gb_mod.render
+    else:
+        gb_filename = gb_mod.screenshots[0]
+    filetype = os.path.splitext(os.path.basename(gb_filename))[1]
+    filename = secure_filename(mod.name) + '-' + str(time.time()) + filetype
+    base_path = os.path.join(secure_filename(mod.user.username) + '_' + str(mod.user.id), secure_filename(mod.name))
+    full_path = os.path.join(_cfg('storage'), base_path)
+    if not os.path.exists(full_path):
+        os.makedirs(full_path)
+    path = os.path.join(full_path, filename)
+    try:
+        os.remove(os.path.join(_cfg('storage'), mod.background))
+    except:
+        pass # who cares
+    download(["http://files.gamebanana.com/img/ss/" + type_thing + "/" + gb_filename], full_path, filename, mod)
+    mod.background = os.path.join("/content/" + base_path, filename)
+    return redirect("/mod/import-success")
+
+class DownloadThread(threading.Thread):
+    def __init__(self, queue, destfolder, name, mod):
+        super(DownloadThread, self).__init__()
+        self.queue = queue
+        self.destfolder = destfolder
+        self.daemon = True
+        self.name = name
+        self.mod = mod
+    def run(self):
+        while True:
+            url = self.queue.get()
+            try:
+                self.download_url(url)
+            except Exception as e:
+                print("   Error: %s", e)
+            self.queue.task_done()
+
+    def download_url(self, url):
+        # change it to a different way if you require
+        name = self.name
+        dest = os.path.join(self.destfolder, name)
+        print("[%s] Downloading %s -> %s",self.ident, url, dest)
+        urllib.request.urlretrieve(url, dest)
+        if ".zip" in url:
+            send_upload_confirmation(self.mod.user, self.mod)
+
+def download(urls, destfolder, name, mod, numthreads=4):
+    queue = Queue()
+    for url in urls:
+        queue.put(url)
+
+    for i in range(numthreads):
+        t = DownloadThread(queue, destfolder, name, mod)
+        t.start()
+
+    queue.join()

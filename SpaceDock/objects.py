@@ -287,7 +287,10 @@ class Mod(Base):
     total_score = Column(Float(), nullable=True)
     rating_count = Column(Integer, nullable=False, server_default=text('0'))
     ckan = Column(Boolean)
-
+    banana_id = Column(Integer)
+    banana_url = Column(String(512))
+    banana_verification = Column(String(512))
+    banana_verified = Column(Boolean())
     def background_thumb(self):
         if (_cfg('thumbnail_size') == ''):
             return self.background

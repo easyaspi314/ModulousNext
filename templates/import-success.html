@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block styles %}
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='stylesheet.css') }}" />
+<style>
+  .bootstrap-demo{margin:30px;}
+</style>
+{% endblock %}
+{% block body %}
+<div class="container space-left-right" style="margin-top: 20px;">
+  <h1>Mod import complete... sort of.</h1>
+  <p>Your mod is currently being imported, you will get a mail once that's done.</p>
+</div>
+{% endblock %}
