@@ -16,7 +16,7 @@ def import_monkeys():
         else:
             ga = Game.query.filter(Game.short == 'melee').order_by(desc(Game.id)).first()
     else:
-        ga = Game.query.filter(Game.id == 1).order_by(desc(Game.id)).first()
+        ga = Game.query.filter(Game.short == 'melee').order_by(desc(Game.id)).first()
     session['game'] = ga.id;
     session['gamename'] = ga.name;
     session['gameshort'] = ga.short;
