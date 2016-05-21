@@ -1,3 +1,3 @@
-Hi there {{ user.username }}! Your mod should now be published, thanks for uploading it to Modulous
+Hi there {{ user.username }}! Your mod {{mod.name}} should now be uploaded, thanks for uploading it to Modulous
 
-You can go ahead and make it public here: http://{{ domain }}{{ url }}.
+You can go ahead and make it public here: http://{{ domain }}{{ url }}/mod/{{mod.id}}.
