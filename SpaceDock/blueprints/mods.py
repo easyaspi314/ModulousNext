@@ -841,6 +841,7 @@ def verify_gb(mod_id):
         pass # who cares
     download(["http://files.gamebanana.com/img/ss/" + type_thing + "/" + gb_filename], full_path, filename, mod)
     mod.background = os.path.join("/content/" + base_path, filename)
+    mod.banana_verified = True
     return redirect("/mod/import-success")
 
 class DownloadThread(threading.Thread):
