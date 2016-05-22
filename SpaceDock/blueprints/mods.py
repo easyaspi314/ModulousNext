@@ -824,7 +824,7 @@ def verify_gb(mod_id):
     download(["http://files.gamebanana.com/" + type_thing + "/" + gb_mod.file_path], full_path, filename, mod)
 
     gb_filename = None
-    if not gb_mod.render:
+    if gb_mod.render:
         gb_filename = gb_mod.render
     else:
         gb_filename = gb_mod.screenshots[0]
