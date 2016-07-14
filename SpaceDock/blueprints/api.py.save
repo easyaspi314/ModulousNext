@@ -737,7 +737,7 @@ def update_mod(mod_id):
     db.commit()
     return { 'url': url_for("mods.mod", id=mod.id, mod_name=mod.name), "id": version.id  }
 
-"""@api.route('/api/mod/import_gb', methods=['POST'])
+@api.route('/api/mod/import_gb', methods=['POST'])
 @json_output
 def import_mod():
     if not current_user:
@@ -824,4 +824,3 @@ def import_mod():
     session['gameshort'] = ga.short;
     session['gameid'] = ga.id;
     return { 'url': "/gb_verification/" + str(mod.id), "id": mod.id, "name": mod.name, "verification": mod.banana_verification }
-"""
